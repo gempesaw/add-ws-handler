@@ -3,30 +3,30 @@ const url = require('url');
 const setPrototypeOf = require('setprototypeof');
 
 // janky next implementation https://github.com/expressjs/express/blob/351396f971280ab79faddcf9782ea50f4e88358d/lib/router/index.js#L136
-const makeNext = (req, socket, rest) => (err) => {
+const makeNext = (req, ws, rest) => (err) => {
   if (err) {
-    socket.close(1001, err.message);
+    ws.close(1001, err.message);
   }
   else {
-    chain(req, socket, rest); // eslint-disable-line no-use-before-define
+    chain(req, ws, rest); // eslint-disable-line no-use-before-define
   }
 };
 
 // middleware handler
-const chain = (req, socket, fns) => {
+const chain = (req, ws, fns) => {
   try {
     const [ fn, ...rest ] = fns;
 
     if (!fn) {
-      socket.close();
+      ws.close();
     }
     else {
-      const next = makeNext(req, socket, rest);
-      fn(req, socket, next);
+      const next = makeNext(req, ws, rest);
+      fn(req, ws, next);
     }
   }
   catch (err) {
-    makeNext(req, socket)(err);
+    makeNext(req, ws)(err);
   }
 };
 
@@ -43,9 +43,9 @@ const registerWebsocketPath = (path, ...middleware) => {
   paths[path] = middleware;
 };
 
-const handleWebsocketRequests = (wss, prefix, prototype) => wss.on('connection', (client, req) => {
+const handleWebsocketRequests = (wss, prefix, prototype) => wss.on('connection', (ws, req) => {
   const parsedUrl = url.parse(req.url, true);
-  const middlewareForPath = paths[parsedUrl.pathname];
+  const middlewareForPath = paths[`${prefix}/${parsedUrl.pathname}`.replace(/\/{2,}/g, '/')];
   if (middlewareForPath) {
     // pretend our request has a cooler prototype, for example express
     // adds some handy getters on the prototype in this way
@@ -54,10 +54,10 @@ const handleWebsocketRequests = (wss, prefix, prototype) => wss.on('connection',
     }
     req.query = parsedUrl.query;
 
-    chain(req, client, middlewareForPath);
+    chain(req, ws, middlewareForPath);
   }
   else {
-    client.close(1000, 'no matching websocket paths were found');
+    ws.close(1000, 'no matching websocket paths were found');
   }
 });
 
@@ -65,8 +65,8 @@ const addHandler = ({ app, server, prefix = '/', prototype = null }) => {
   const wss = new WebSocket.Server({ server });
   handleWebsocketRequests(wss, prefix, prototype);
 
-  // eslint-disable-next-line no-param-reassign
-  app.ws = registerWebsocketPath(wss, prefix, prototype);
+  app.wss = wss; // eslint-disable no-param-reassign
+  app.ws = registerWebsocketPath; // eslint-disable no-param-reassign
 
   return wss;
 };
