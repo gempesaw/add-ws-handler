@@ -4,7 +4,7 @@
   "description": "add a very simple ws handler that mimics a middleware function",
   "main": "index.js",
   "scripts": {
-    "test": "mocha",
+    "test": "npm run lint && mocha",
     "lint": "eslint --format unix index.js test"
   },
   "repository": {
