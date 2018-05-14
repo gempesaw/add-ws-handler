@@ -45,7 +45,7 @@ const registerWebsocketPath = (path, ...middleware) => {
 
 const handleWebsocketRequests = (wss, prefix, prototype) => wss.on('connection', (ws, req) => {
   const parsedUrl = url.parse(req.url, true);
-  const middlewareForPath = paths[`${prefix}/${parsedUrl.pathname}`.replace(/\/{2,}/g, '/')];
+  const middlewareForPath = paths[parsedUrl.pathname.replace(prefix, '')];
   if (middlewareForPath) {
     // pretend our request has a cooler prototype, for example express
     // adds some handy getters on the prototype in this way
@@ -61,12 +61,12 @@ const handleWebsocketRequests = (wss, prefix, prototype) => wss.on('connection',
   }
 });
 
-const addHandler = ({ app, server, prefix = '/', prototype = null }) => {
+const addHandler = ({ app, server, prefix = '', prototype = null }) => {
   const wss = new WebSocket.Server({ server });
-  handleWebsocketRequests(wss, prefix, prototype);
+  handleWebsocketRequests(wss, new RegExp(`^${prefix}`), prototype);
 
-  app.wss = wss; // eslint-disable no-param-reassign
-  app.ws = registerWebsocketPath; // eslint-disable no-param-reassign
+  app.wss = wss; // eslint-disable-line no-param-reassign
+  app.ws = registerWebsocketPath; // eslint-disable-line no-param-reassign
 
   return wss;
 };

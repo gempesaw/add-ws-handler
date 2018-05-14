@@ -10,7 +10,7 @@ describe('websocket handler', () => {
 
   before(async () => {
     app = express();
-    server = await new Promise((resolve, reject) => {
+    server = await new Promise((resolve) => {
       const s = app.listen(0, () => resolve(s));
     });
     address = `localhost:${server.address().port}`;
@@ -20,20 +20,20 @@ describe('websocket handler', () => {
 
   it('should accept websocket requests', async () => {
     let called = 0;
-    app.ws('/test', (_ , ws) => ws.send(++called));
+    app.ws('/test', (_, ws) => ws.send(++called));
 
     const ws = new WebSocket(`ws://${address}/test`);
-    const message = await new Promise((resolve, reject) => ws.on('message', resolve));
+    const message = await new Promise((resolve) => ws.on('message', resolve));
     ws.close();
 
     expect(message).to.equal('1');
   });
 
   it('should register multiple routes ', async () => {
-    app.ws('/something-else', (_ , ws) => ws.send('expected'));
+    app.ws('/something-else', (_, ws) => ws.send('expected'));
 
     const ws = new WebSocket(`ws://${address}/something-else`);
-    const message = await new Promise((resolve, reject) => ws.on('message', resolve));
+    const message = await new Promise((resolve) => ws.on('message', resolve));
     ws.close();
 
     expect(message).to.equal('expected');
@@ -52,19 +52,39 @@ describe('websocket handler', () => {
         second++;
         next();
       },
-      (req, ws, next) => ws.send(JSON.stringify({ first, second }))
+      (req, ws) => ws.send(JSON.stringify({ first, second }))
     );
 
     const ws = new WebSocket(`ws://${address}/middlewares`);
-    const assert = JSON.parse(await new Promise((resolve, reject) => ws.on('message', resolve)));
+    const assert = JSON.parse(await new Promise((resolve) => ws.on('message', resolve)));
     ws.close();
 
     expect(assert).to.eql({ first: 1, second: 1 });
   });
 
+  it('should handle prefixes', async () => {
+    const appWithPrefix = express();
+    const serverWithPrefix = await new Promise((resolve) => {
+      const s = appWithPrefix.listen(0, () => resolve(s));
+    });
+    const addressWithPrefix = `localhost:${serverWithPrefix.address().port}`;
+
+    addWebsocketHandler({ app: appWithPrefix, server: serverWithPrefix, prefix: '/prefix' });
+
+    let called = 0;
+    appWithPrefix.ws('/test', (_, ws) => ws.send(++called));
+
+    const ws = new WebSocket(`ws://${addressWithPrefix}/prefix/test`);
+    const message = await new Promise((resolve) => ws.on('message', resolve));
+    ws.close();
+
+    expect(message).to.equal('1');
+    serverWithPrefix.close();
+  });
+
   it('should not accept params', () => {
     try {
-      app.ws('/:hello', (_ , ws) => ws.send('expected'));
+      app.ws('/:hello', (_, ws) => ws.send('expected'));
     }
     catch ({ message }) {
       expect(message).to.match(/params .* not supported/);
