@@ -26,7 +26,10 @@ addWebsocketHandler({ app, server });
 
 app.ws(
   '/path',
-  (req, ws, next) => ws.send('hi'),
+  (req, ws, next) => {
+    ws.send('hi');
+    next();
+  },
   (req, ws, next) => ws.send('hello')
 );
 ```
@@ -50,20 +53,24 @@ parameters and two optional parameters:
   should be passed in here so that we can append it to the paths that
   are registered:
 
-        addWebsocketHandler({ app, server, prefix: '/prefix' });
-        app.ws('/path', ...);
+  ```node
+  addWebsocketHandler({ app, server, prefix: '/prefix' });
+  app.ws('/path', ...);
 
-        // the above would respond to /prefix/path, not /path
+  // the above would respond to /prefix/path, not /path
+  ```
 
 - `prototype`: (optional) Express adds a bunch of stuff to the
   http.IncomingMessage prototype. To make the `req` object a little
   more familiar, you can pass a prototype and we'll set the prototype
   of the `req` object for you.
 
-        const Express = require('express');
-        addWebsocketHandler({ app, server, prototype: Express.request  });
+  ```node
+  const Express = require('express');
+  addWebsocketHandler({ app, server, prototype: Express.request  });
 
-        app.ws('/path', (req, ws, next) => {
-          // req.header() is defined as in Express, even though
-          // http.IncomingMessage doesn't have it on its own
-        });
+  app.ws('/path', (req, ws, next) => {
+    // req.header() is defined as in Express, even though
+    // http.IncomingMessage doesn't have it on its own
+  });
+  ```
