@@ -1,0 +1,6 @@
+rules:
+  global-require: [ off ]
+  no-use-before-define: [ off ]
+  no-confusing-arrow: [ error, { allowParens: true } ]
+  no-restricted-syntax: [ off ]
+  no-await-in-loop: [ off ]
