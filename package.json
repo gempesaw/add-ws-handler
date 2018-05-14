@@ -1,6 +1,6 @@
 {
   "name": "add-ws-handler",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "add a very simple ws handler that mimics a middleware function",
   "main": "index.js",
   "scripts": {
